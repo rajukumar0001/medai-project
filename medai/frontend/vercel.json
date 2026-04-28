@@ -1,0 +1,6 @@
+{
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "env": {
+    "REACT_APP_API_URL": "@medai_api_url"
+  }
+}

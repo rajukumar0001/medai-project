@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: medai-backend
+    env: node
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: AI_SERVICE_URL
+        sync: false
+
+  - type: web
+    name: medai-ai-service
+    env: python
+    buildCommand: cd ai-service && pip install -r requirements.txt && python training/train_all_models.py
+    startCommand: cd ai-service && gunicorn app:app -c gunicorn.conf.py
+    envVars:
+      - key: FLASK_ENV
+        value: production
