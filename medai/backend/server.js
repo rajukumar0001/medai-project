@@ -25,23 +25,27 @@ const analyticsRoutes = require('./routes/analytics');
 
 const app = express();
 
-// ─── Security Middleware ─────────────────────────────────────────────────────
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: 'cross-origin' }
-}));
+// Security Middleware
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' }
+  })
+);
 
-// ─── CORS ────────────────────────────────────────────────────────────────────
-app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL || 'http://localhost:3000',
-    'https://medai.vercel.app'
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+// CORS
+app.use(
+  cors({
+    origin: [
+      process.env.FRONTEND_URL || 'http://localhost:3000',
+      'https://medai.vercel.app'
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+  })
+);
 
-// ─── Rate Limiting ────────────────────────────────────────────────────────────
+// Rate Limiting
 const limiter = rateLimit({
   windowMs: (process.env.RATE_LIMIT_WINDOW || 15) * 60 * 1000,
   max: process.env.RATE_LIMIT_MAX || 100,
@@ -49,26 +53,26 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// Stricter limit for auth routes
+// Auth limiter
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
   message: { error: 'Too many auth attempts, please try again later.' }
 });
 
-// ─── Body Parsing ────────────────────────────────────────────────────────────
+// Body Parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// ─── Logging ─────────────────────────────────────────────────────────────────
+// Logging
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-// ─── Static Files (Uploaded Reports) ─────────────────────────────────────────
+// Static Files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ─── API Routes ───────────────────────────────────────────────────────────────
+// API Routes
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/predictions', predictionRoutes);
@@ -79,7 +83,7 @@ app.use('/api/reminders', reminderRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/analytics', analyticsRoutes);
 
-// ─── Health Check ─────────────────────────────────────────────────────────────
+// Health Check
 app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
@@ -89,12 +93,12 @@ app.get('/health', (req, res) => {
   });
 });
 
-// ─── 404 Handler ─────────────────────────────────────────────────────────────
+// 404 Handler
 app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-// ─── Global Error Handler ─────────────────────────────────────────────────────
+// Global Error Handler
 app.use((err, req, res, next) => {
   console.error('Global Error:', err.stack);
   res.status(err.status || 500).json({
@@ -103,13 +107,10 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ─── MongoDB Connection ───────────────────────────────────────────────────────
+// MongoDB Connection
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
-    });
+    await mongoose.connect(process.env.MONGODB_URI);
     console.log('✅ MongoDB Atlas connected');
   } catch (err) {
     console.error('❌ MongoDB connection failed:', err.message);
@@ -117,12 +118,12 @@ const connectDB = async () => {
   }
 };
 
-// ─── Start Server ─────────────────────────────────────────────────────────────
+// Start Server
 const PORT = process.env.PORT || 5000;
 
 connectDB().then(() => {
   app.listen(PORT, () => {
-    console.log(`🚀 MedAI Backend running on http://localhost:${PORT}`);
+    console.log(`🚀 MedAI Backend running on port ${PORT}`);
     console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
   });
 });
