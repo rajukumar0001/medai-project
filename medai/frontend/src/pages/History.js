@@ -4,8 +4,15 @@ import PageLayout from '../components/common/PageLayout';
 import RiskBadge from '../components/common/RiskBadge';
 import EmptyState from '../components/common/EmptyState';
 import ConfirmModal from '../components/common/ConfirmModal';
-import { getPredictionHistory, deletePrediction } from '../api/predictions';
-import { getReports, deleteReport } from '../api/reports';
+import {
+  getPredictionHistory,
+  deletePrediction
+} from '../api/predictions';
+import {
+  getReports,
+  deleteReport,
+  downloadReport
+} from '../api/reports';
 import {
   DISEASE_LABELS,
   DISEASE_ICONS,
@@ -42,6 +49,27 @@ const History = () => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const handleDownload = async (id, fileName) => {
+    try {
+      const res = await downloadReport(id);
+
+      const url = window.URL.createObjectURL(
+        new Blob([res.data])
+      );
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName || 'report');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      toast.success('Download started');
+    } catch {
+      toast.error('Download failed');
+    }
+  };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -124,7 +152,9 @@ const History = () => {
 
               <RiskBadge risk={pred?.result?.riskLevel} />
 
-              <Link to={`/results/${pred._id}`}>View</Link>
+              <Link to={`/results/${pred._id}`}>
+                View
+              </Link>
 
               <button
                 onClick={() =>
@@ -160,7 +190,8 @@ const History = () => {
             <h3>{rep.originalName}</h3>
 
             <p>
-              {rep.reportType} • {formatBytes(rep.fileSize)}
+              {rep.reportType} •{' '}
+              {formatBytes(rep.fileSize)}
             </p>
 
             <p>Status: {rep.processingStatus}</p>
@@ -172,13 +203,16 @@ const History = () => {
                 marginTop: '10px'
               }}
             >
-              <a
-                href={`https://medai-backend-odyl.onrender.com/api/reports/${rep._id}/download`}
-                target="_blank"
-                rel="noreferrer"
+              <button
+                onClick={() =>
+                  handleDownload(
+                    rep._id,
+                    rep.originalName
+                  )
+                }
               >
                 Download
-              </a>
+              </button>
 
               <button
                 onClick={() =>
