@@ -10,8 +10,11 @@ const User = require('../models/User');
 const protect = async (req, res, next) => {
   let token;
 
-  // Extract token from Authorization header or cookie
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+  // Extract token from Authorization header
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer ')
+  ) {
     token = req.headers.authorization.split(' ')[1];
   }
 
@@ -23,15 +26,13 @@ const protect = async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Get user from database (exclude password)
+    // Get user from database
     const user = await User.findById(decoded.id).select('-password');
 
     if (!user) {
-      return res.status(401).json({ error: 'Token is invalid. User not found.' });
-    }
-
-    if (!user.isActive) {
-      return res.status(401).json({ error: 'Account has been deactivated.' });
+      return res.status(401).json({
+        error: 'Token is invalid. User not found.'
+      });
     }
 
     // Attach user to request
@@ -42,10 +43,16 @@ const protect = async (req, res, next) => {
     if (err.name === 'JsonWebTokenError') {
       return res.status(401).json({ error: 'Invalid token.' });
     }
+
     if (err.name === 'TokenExpiredError') {
-      return res.status(401).json({ error: 'Token expired. Please log in again.' });
+      return res.status(401).json({
+        error: 'Token expired. Please log in again.'
+      });
     }
-    return res.status(500).json({ error: 'Token verification failed.' });
+
+    return res.status(500).json({
+      error: 'Token verification failed.'
+    });
   }
 };
 
@@ -61,11 +68,14 @@ const authorize = (...roles) => {
   };
 };
 
-// ─── Optional Auth (doesn't fail if no token) ────────────────────────────────
+// ─── Optional Auth ────────────────────────────────────────────────────────────
 const optionalAuth = async (req, res, next) => {
   let token;
 
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer ')
+  ) {
     token = req.headers.authorization.split(' ')[1];
   }
 
@@ -74,7 +84,7 @@ const optionalAuth = async (req, res, next) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       req.user = await User.findById(decoded.id).select('-password');
     } catch (err) {
-      // Ignore errors for optional auth
+      // Ignore errors
     }
   }
 
