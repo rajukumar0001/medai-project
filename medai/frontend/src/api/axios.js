@@ -23,20 +23,18 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('medai_token');
+    const status = error.response?.status;
 
-      if (window.location.pathname !== '/login') {
-        toast.error('Session expired. Please login again.');
-        window.location.href = '/login';
-      }
+    // 401 par logout nahi hoga
+    if (status === 401) {
+      console.warn('Unauthorized request');
     }
 
-    if (error.response?.status === 429) {
+    if (status === 429) {
       toast.error('Too many requests. Please slow down.');
     }
 
-    if (error.response?.status >= 500) {
+    if (status >= 500) {
       toast.error('Server error. Please try again later.');
     }
 
