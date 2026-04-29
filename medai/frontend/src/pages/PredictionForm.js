@@ -125,21 +125,49 @@ const PredictionForm = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedDisease) return toast.error('Please select a disease to predict');
-    if (fields.some(f => formData[f.key] === undefined)) {
-      return toast.error('Please fill all fields');
-    }
-    setLoading(true);
-    try {
-      const res = await predictDisease(selectedDisease, formData);
-      toast.success('Prediction complete!');
-      navigate(`/results/${res.data.prediction._id}`);
-    } catch (err) {
-      toast.error(err.response?.data?.error || 'Prediction failed. Try again.');
-    } finally { setLoading(false); }
-  };
+  e.preventDefault();
 
+  if (!selectedDisease) {
+    toast.error("Please select a disease to predict");
+    return;
+  }
+
+  if (fields.some((field) => formData[field.key] === undefined)) {
+    toast.error("Please fill all fields");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const res = await predictDisease(selectedDisease, formData);
+
+    const predictionId =
+      res?.data?.prediction?._id ||
+      res?.data?._id ||
+      res?.data?.data?._id ||
+      null;
+
+    toast.success("Prediction complete!");
+
+    if (predictionId) {
+      navigate(`/results/${predictionId}`);
+    } else {
+      navigate("/history");
+    }
+
+  } catch (err) {
+    const message =
+      err?.response?.data?.error ||
+      err?.response?.data?.message ||
+      "Prediction failed. Try again.";
+
+    toast.error(message);
+
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <PageLayout>
       <motion.div initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }} style={{ marginBottom:28 }}>
