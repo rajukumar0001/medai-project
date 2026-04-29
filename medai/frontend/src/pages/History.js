@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import PageLayout from '../components/common/PageLayout';
 import RiskBadge from '../components/common/RiskBadge';
 import EmptyState from '../components/common/EmptyState';
@@ -22,56 +21,23 @@ const History = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-
     try {
       if (tab === 'predictions') {
-        const res = await getPredictionHistory({ page, limit: 10 });
-
-        const data = res?.data || {};
-        const items =
-          data.predictions ||
-          data.history ||
-          data.data ||
-          [];
-
-        const pages =
-          data.pagination?.totalPages ||
-          data.pagination?.total ||
-          1;
-
-        setPredictions(Array.isArray(items) ? items : []);
-        setTotalPages(pages);
+        const res = await getPredictionHistory();
+        setPredictions(res.data.predictions || []);
       } else {
-        const res = await getReports({ page, limit: 10 });
-
-        const data = res?.data || {};
-        const items =
-          data.reports ||
-          data.data ||
-          [];
-
-        const pages =
-          data.pagination?.totalPages ||
-          data.pagination?.total ||
-          1;
-
-        setReports(Array.isArray(items) ? items : []);
-        setTotalPages(pages);
+        const res = await getReports();
+        setReports(res.data.reports || []);
       }
-    } catch (error) {
-      console.error(error);
+    } catch {
       toast.error('Failed to load history');
-      setPredictions([]);
-      setReports([]);
     } finally {
       setLoading(false);
     }
-  }, [tab, page]);
+  }, [tab]);
 
   useEffect(() => {
     fetchData();
@@ -110,34 +76,18 @@ const History = () => {
   const filteredReports = reports.filter((r) =>
     (r?.originalName || '')
       .toLowerCase()
-      .includes(search.toLowerCase()) ||
-    (r?.reportType || '')
-      .toLowerCase()
       .includes(search.toLowerCase())
   );
 
-  const statusColor = {
-    completed: '#10b981',
-    processing: '#f59e0b',
-    failed: '#f43f5e',
-    pending: '#94a3b8'
-  };
-
   return (
     <PageLayout>
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        style={{ marginBottom: 24 }}
-      >
-        <h1 style={{ fontSize: '1.8rem' }}>📋 History</h1>
-        <p>View and manage all your predictions and reports.</p>
-      </motion.div>
+      <h1>📋 History</h1>
 
-      <div style={{ marginBottom: 20 }}>
+      <div style={{ marginBottom: '20px' }}>
         <button onClick={() => setTab('predictions')}>
           Predictions
         </button>
+
         <button onClick={() => setTab('reports')}>
           Reports
         </button>
@@ -156,12 +106,7 @@ const History = () => {
           <EmptyState
             icon="🔬"
             title="No predictions yet"
-            description="Run your first prediction."
-            action={
-              <Link to="/predict">
-                Start Predicting
-              </Link>
-            }
+            description="Run prediction first."
           />
         ) : (
           filteredPredictions.map((pred) => (
@@ -177,13 +122,9 @@ const History = () => {
                 {pred?.result?.probability || 0}% risk
               </p>
 
-              <RiskBadge
-                risk={pred?.result?.riskLevel}
-              />
+              <RiskBadge risk={pred?.result?.riskLevel} />
 
-              <Link to={`/results/${pred._id}`}>
-                View
-              </Link>
+              <Link to={`/results/${pred._id}`}>View</Link>
 
               <button
                 onClick={() =>
@@ -206,24 +147,50 @@ const History = () => {
         />
       ) : (
         filteredReports.map((rep) => (
-          <div key={rep._id}>
+          <div
+            key={rep._id}
+            style={{
+              background: '#1e293b',
+              padding: '15px',
+              marginBottom: '15px',
+              borderRadius: '12px',
+              color: 'white'
+            }}
+          >
             <h3>{rep.originalName}</h3>
 
             <p>
-              {rep.reportType} •{' '}
-              {formatBytes(rep.fileSize)}
+              {rep.reportType} • {formatBytes(rep.fileSize)}
             </p>
 
-            <span
+            <p>Status: {rep.processingStatus}</p>
+
+            <div
               style={{
-                color:
-                  statusColor[
-                    rep.processingStatus
-                  ] || '#94a3b8'
+                display: 'flex',
+                gap: '10px',
+                marginTop: '10px'
               }}
             >
-              {rep.processingStatus}
-            </span>
+              <a
+                href={`https://medai-backend-odyl.onrender.com/api/reports/${rep._id}/download`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Download
+              </a>
+
+              <button
+                onClick={() =>
+                  setDeleteTarget({
+                    id: rep._id,
+                    type: 'report'
+                  })
+                }
+              >
+                Delete
+              </button>
+            </div>
           </div>
         ))
       )}

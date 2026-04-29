@@ -1,5 +1,6 @@
 const axios = require("axios");
 const fs = require("fs");
+const path = require("path");
 const Report = require("../models/Report");
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://localhost:5001";
@@ -25,7 +26,6 @@ exports.uploadReport = async (req, res) => {
       processingStatus: "processing",
     });
 
-    // Background analysis
     analyzeReport(report._id, req.file.path, reportType);
 
     res.status(201).json({
@@ -66,7 +66,7 @@ async function analyzeReport(reportId, filePath, reportType) {
       reportDate: new Date(),
 
       analysis: {
-        summary: analysis.summary || "Your report has been analyzed successfully.",
+        summary: analysis.summary || "Your report analyzed successfully.",
         overallStatus: analysis.overall_status || "normal",
         predictedRisks: analysis.predicted_risks || [],
         recommendations:
@@ -77,38 +77,20 @@ async function analyzeReport(reportId, filePath, reportType) {
 
       processingStatus: "completed",
     });
-
-    console.log("AI Analysis Completed");
   } catch (error) {
-    console.log("AI Failed → Safe Mode Started");
-
-    // SAFE MODE FIX
     await Report.findByIdAndUpdate(reportId, {
       extractedText: "Basic analysis completed",
-      parameters: [
-        {
-          parameter: "Uploaded File",
-          value: "Processed",
-          unit: "",
-          normalRange: "-",
-          status: "normal",
-        },
-      ],
+      parameters: [],
       abnormalValues: [],
-
       analysis: {
         summary:
-          "Report uploaded and processed successfully. Detailed AI analysis unavailable.",
-        overallStatus: "normal", // FIXED
+          "Report uploaded successfully. Detailed AI analysis unavailable.",
+        overallStatus: "normal",
         predictedRisks: [],
-        recommendations: [
-          "Doctor review recommended",
-          "Upload clearer report for better AI results",
-        ],
+        recommendations: ["Doctor review recommended"],
         urgency: "routine",
         followUpRequired: false,
       },
-
       processingStatus: "completed",
     });
   }
@@ -172,7 +154,14 @@ exports.deleteReport = async (req, res) => {
 // ================= FAVORITE =================
 exports.toggleFavorite = async (req, res) => {
   try {
-    const report = await Report.findById(req.params.id);
+    const report = await Report.findOne({
+      _id: req.params.id,
+      user: req.user.id,
+    });
+
+    if (!report) {
+      return res.status(404).json({ error: "Report not found" });
+    }
 
     report.isFavorite = !report.isFavorite;
     await report.save();
@@ -189,14 +178,24 @@ exports.toggleFavorite = async (req, res) => {
 // ================= DOWNLOAD =================
 exports.downloadReport = async (req, res) => {
   try {
-    const report = await Report.findById(req.params.id);
+    const report = await Report.findOne({
+      _id: req.params.id,
+      user: req.user.id,
+    });
 
     if (!report) {
-      return res.status(404).json({ error: "Not found" });
+      return res.status(404).json({ error: "Report not found" });
     }
 
-    res.download(report.filePath, report.originalName);
+    const filePath = path.resolve(report.filePath);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: "File missing on server" });
+    }
+
+    return res.download(filePath, report.originalName);
   } catch (error) {
+    console.log("Download Error:", error);
     res.status(500).json({ error: "Download failed" });
   }
 };
