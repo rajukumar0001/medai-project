@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 export default function Appointments() {
   const [form, setForm] = useState({
@@ -10,6 +10,14 @@ export default function Appointments() {
   });
 
   const [appointments, setAppointments] = useState([]);
+
+  // Page load par localStorage se data lao
+  useEffect(() => {
+    const saved = localStorage.getItem("appointments");
+    if (saved) {
+      setAppointments(JSON.parse(saved));
+    }
+  }, []);
 
   const handleChange = (e) => {
     setForm({
@@ -32,7 +40,15 @@ export default function Appointments() {
       return;
     }
 
-    setAppointments([...appointments, form]);
+    const updatedAppointments = [...appointments, form];
+
+    setAppointments(updatedAppointments);
+
+    // localStorage me save karo
+    localStorage.setItem(
+      "appointments",
+      JSON.stringify(updatedAppointments)
+    );
 
     alert("Appointment Booked Successfully ✅");
 
@@ -43,6 +59,12 @@ export default function Appointments() {
       time: "",
       problem: "",
     });
+  };
+
+  const deleteAppointment = (index) => {
+    const updated = appointments.filter((_, i) => i !== index);
+    setAppointments(updated);
+    localStorage.setItem("appointments", JSON.stringify(updated));
   };
 
   return (
@@ -112,16 +134,7 @@ export default function Appointments() {
 
         <button
           type="submit"
-          style={{
-            width: "100%",
-            padding: "12px",
-            background: "#06b6d4",
-            color: "white",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontSize: "16px",
-          }}
+          style={buttonStyle}
         >
           Book Now
         </button>
@@ -152,6 +165,21 @@ export default function Appointments() {
               <p>📅 Date: {item.date}</p>
               <p>⏰ Time: {item.time}</p>
               <p>🩺 Problem: {item.problem}</p>
+
+              <button
+                onClick={() => deleteAppointment(index)}
+                style={{
+                  marginTop: "10px",
+                  background: "red",
+                  color: "white",
+                  border: "none",
+                  padding: "8px 12px",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                Delete
+              </button>
             </div>
           ))
         )}
@@ -168,4 +196,15 @@ const inputStyle = {
   border: "1px solid #334155",
   background: "#0f172a",
   color: "white",
+};
+
+const buttonStyle = {
+  width: "100%",
+  padding: "12px",
+  background: "#06b6d4",
+  color: "white",
+  border: "none",
+  borderRadius: "8px",
+  cursor: "pointer",
+  fontSize: "16px",
 };
