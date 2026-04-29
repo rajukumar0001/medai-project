@@ -5,7 +5,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'https://medai-backend-odyl.onrender.com/api',
+  baseURL: 'https://medai-project-of44.onrender.com/api',
   timeout: 30000,
   headers: { 'Content-Type': 'application/json' }
 });
